@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getToken, refreshAccessToken } from "./auth"; // ✅ token utils import
 import "./ClientDashboard.css";
 
 function PostProject() {
@@ -7,32 +8,58 @@ function PostProject() {
   const [formData, setFormData] = useState({
     title: "",
     budget: "",
-    skills: "",
-    deadline: "",
-    status: "Project Posted",
+    skills_required: "", // ✅ match backend field
+    duration: "",         // ✅ match backend field
   });
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    let token = getToken();
 
-    const newProject = {
-      ...formData,
-      createdAt: new Date().toLocaleString(),
-    };
+    try {
+      let res = await fetch("http://127.0.0.1:8000/api/projects/create/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
 
-    // ✅ Save project for Client Dashboard
-    const clientProjects = JSON.parse(localStorage.getItem("clientProjects")) || [];
-    localStorage.setItem("clientProjects", JSON.stringify([...clientProjects, newProject]));
+      // ✅ If token expired, try refreshing once
+      if (res.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          res = await fetch("http://127.0.0.1:8000/api/projects/create/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${newToken}`,
+            },
+            body: JSON.stringify(formData),
+          });
+        } else {
+          throw new Error("Token expired, please login again");
+        }
+      }
 
-    // ✅ Save project for Admin Dashboard (shared localStorage)
-    const adminProjects = JSON.parse(localStorage.getItem("adminProjects")) || [];
-    localStorage.setItem("adminProjects", JSON.stringify([...adminProjects, newProject]));
+      // ✅ If still not ok, log full response
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("❌ Server Response:", text);
+        alert("❌ Something went wrong!");
+        return;
+      }
 
-    alert("✅ Project posted successfully!");
-    navigate("/my-projects");
+      alert("✅ Project posted successfully!");
+      navigate("/client-dashboard");
+    } catch (err) {
+      console.error("❌ PostProject Error:", err);
+      alert("❌ Something went wrong!");
+    }
   };
 
   return (
@@ -66,15 +93,14 @@ function PostProject() {
             required
           />
           <input
-            name="skills"
+            name="skills_required"
             placeholder="Required Skills"
             onChange={handleChange}
             required
           />
           <input
-            name="deadline"
-            placeholder="Deadline (YYYY-MM-DD)"
-            type="date"
+            name="duration"
+            placeholder="Duration (e.g. 1 month)"
             onChange={handleChange}
             required
           />

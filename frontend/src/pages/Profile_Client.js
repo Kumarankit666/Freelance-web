@@ -10,7 +10,6 @@ function Profile_Client() {
     bio: "",
   });
 
-  // ✅ Auto-fill email from localStorage
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser && storedUser.email) {
@@ -18,16 +17,13 @@ function Profile_Client() {
     }
   }, []);
 
-  // ✅ Handle input changes
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
-  // ✅ Save profile to Django backend
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const token = localStorage.getItem("access");
+    const token = localStorage.getItem("token");
     if (!token) {
       alert("❌ Please login first!");
       return;
@@ -42,7 +38,7 @@ function Profile_Client() {
         },
         body: JSON.stringify({
           contact: profile.contact,
-          business_name: profile.businessName, // match Django field
+          business_name: profile.businessName,
           bio: profile.bio,
         }),
       });
@@ -50,14 +46,14 @@ function Profile_Client() {
       if (response.ok) {
         const data = await response.json();
         console.log("✅ Saved to backend:", data);
-        alert("✅ Client Profile Saved Successfully in Backend!");
+        alert("✅ Client Profile Saved Successfully!");
       } else {
         const errorData = await response.json();
         console.error("❌ Error saving profile:", errorData);
         alert("❌ Failed to save profile: " + JSON.stringify(errorData));
       }
     } catch (error) {
-      console.error("❌ Error:", error);
+      console.error(error);
       alert("❌ Something went wrong while saving profile!");
     }
   };
@@ -74,15 +70,7 @@ function Profile_Client() {
           onChange={handleChange}
           required
         />
-
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={profile.email}
-          disabled
-        />
-
+        <input type="email" name="email" placeholder="Email" value={profile.email} disabled />
         <input
           type="text"
           name="contact"
@@ -91,7 +79,6 @@ function Profile_Client() {
           onChange={handleChange}
           required
         />
-
         <input
           type="text"
           name="businessName"
@@ -100,7 +87,6 @@ function Profile_Client() {
           onChange={handleChange}
           required
         />
-
         <textarea
           name="bio"
           placeholder="Write a short bio..."
@@ -108,7 +94,6 @@ function Profile_Client() {
           onChange={handleChange}
           required
         />
-
         <button type="submit">Save Profile</button>
       </form>
     </div>

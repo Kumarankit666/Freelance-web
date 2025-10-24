@@ -15,10 +15,7 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -28,32 +25,40 @@ function RegisterPage() {
     try {
       const response = await fetch("http://localhost:8000/api/register/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        console.log("✅ User registered successfully:", data);
-        localStorage.setItem("user", JSON.stringify({ ...data, role: formData.role }));
-        alert("Registration successful ✅");
+        console.log("✅ User registered:", data);
 
-        // ✅ Redirect based on role
-        if (formData.role === "client") {
-          navigate("/client-profile");
+        // ✅ Auto-login after register
+        const loginRes = await fetch("http://127.0.0.1:8000/api/token/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: formData.username, password: formData.password }),
+        });
+        const loginData = await loginRes.json();
+
+        if (loginRes.ok) {
+          localStorage.setItem("token", loginData.access);
+          localStorage.setItem("refresh", loginData.refresh);
+          localStorage.setItem("user", JSON.stringify({ username: formData.username, role: formData.role }));
+
+          alert("Registration & Login successful ✅");
+          if (formData.role === "client") navigate("/client-profile");
+          else navigate("/freelancer-profile");
         } else {
-          navigate("/freelancer-profile");
+          alert("Login failed after register ❌: " + JSON.stringify(loginData));
         }
       } else {
-        console.error("❌ Registration failed:", data);
-        alert("Registration failed: " + JSON.stringify(data));
+        alert("Registration failed ❌: " + JSON.stringify(data));
       }
     } catch (error) {
-      console.error("🚨 Error:", error);
-      alert("Something went wrong while registering ❌");
+      console.error(error);
+      alert("Something went wrong ❌");
     } finally {
       setLoading(false);
     }

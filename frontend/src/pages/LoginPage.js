@@ -8,16 +8,32 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("freelancer");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const user = { username, role };
-    localStorage.setItem("user", JSON.stringify(user));
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/token/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (role === "client") {
-      navigate("/client-dashboard");
-    } else {
-      navigate("/freelancer-dashboard");
+      const data = await res.json();
+
+      if (res.ok) {
+        // ✅ Save access + refresh token
+        localStorage.setItem("token", data.access);
+        localStorage.setItem("refresh", data.refresh);
+        localStorage.setItem("user", JSON.stringify({ username, role }));
+
+        if (role === "client") navigate("/client-dashboard");
+        else navigate("/freelancer-dashboard");
+      } else {
+        alert("❌ Login failed: " + JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Something went wrong!");
     }
   };
 
